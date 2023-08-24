@@ -43,6 +43,8 @@ def run(
 
     model = ModelRegister.get(run_config["model"])(model_params)
 
+    info("start training")
+    
     val_loss = train(model, train_df, target_df, train_params)
 
     wandb.alert(

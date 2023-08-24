@@ -1,4 +1,4 @@
-from models.catboost import CatBoostRegressionModel
+from models.catboost import CatBoostRegressionModel, CatBoostClassificationModel
 from models.lightgbm import LightGBMRegressionModel
 
 
@@ -24,3 +24,4 @@ class ModelRegister:
 
 ModelRegister.register("lightgbm", LightGBMRegressionModel)
 ModelRegister.register("catboost", CatBoostRegressionModel)
+ModelRegister.register("catboost_class", CatBoostClassificationModel)
