@@ -51,6 +51,28 @@ def save_all_columns(df, feature_type: str, overwrite=False):
                 raise ValueError(f"{path} is already exists")
             df[[col]].to_feather(path)
 
+def save_columns(column: pd.Series, feature_type: str, col_rename: str, overwrite=False):
+    df = pd.DataFrame()
+    df[col_rename] = column
+    all_save_columns = glob.glob("../data/columns/*.feather")
+    assert feature_type in ["train", "test", "target"]
+    path = feather_path(col_rename, feature_type)
+    if feature_type == "train":
+        if path in all_save_columns and not overwrite:
+            raise ValueError(f"{path} is already exists")
+        df.to_feather(path)
+    elif feature_type == "test":
+        if path in all_save_columns and not overwrite:
+            raise ValueError(f"{path} is already exists")
+        df.to_feather(path)
+    elif feature_type == "target":
+        if path in all_save_columns and not overwrite:
+            raise ValueError(f"{path} is already exists")
+        df.to_feather(path)
+
+
+
+
 
 def feather_path(col, feature_type):
     PATH = os.getenv("TRACON_DATA_PATH")
