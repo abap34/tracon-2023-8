@@ -2,6 +2,8 @@ import wandb
 from tqdm import tqdm
 import subprocess
 import pandas as pd
+import glob
+
 from train import train
 from modelregister import ModelRegister
 from utils import feather_path, submission_path, info
@@ -16,7 +18,26 @@ def run(
     model_params: dict,
     train_params: dict,
 ):
-    assert len(in_columns) == len(test_columns)
+    in_columns_fixed = []
+    for col in in_columns:
+        if "*" in col:
+            for filename in glob.glob(feather_path(col, "train")):
+                in_columns_fixed.append(filename.split("/")[-1].split(".")[0])
+        else:
+            in_columns_fixed.append(col)
+
+    in_columns = in_columns_fixed
+
+    test_columns_fixed = []
+    for col in test_columns:
+        if "*" in col:
+            for filename in glob.glob(feather_path(col, "test")):
+                test_columns_fixed.append(filename.split("/")[-1].split(".")[0])
+        else:
+            test_columns_fixed.append(col)
+        
+    test_columns = test_columns_fixed
+
     params = {
         "in_columns": in_columns,
         "target_column": target_column,
@@ -26,20 +47,25 @@ def run(
 
     wandb.init(
         project="tracon-2023-8",
-        name=run_config["name"],
+        name=run_config["name"] + "-" + run_config["prefix"],
+        group=run_config["name"],
         config=params,
     )
 
-    # load feather for all colum
     train_df = pd.DataFrame()
-    for col in tqdm(in_columns, desc="load train columns"):
+    pbar = tqdm(in_columns, desc="load train columns")
+    for col in pbar:
+        pbar.set_postfix_str("load {}".format(col))
         df = pd.read_feather(feather_path(col, "train"))
         train_df[col] = df[col].values
 
     test_df = pd.DataFrame()
-    for col in tqdm(test_columns, desc="load test columns"):
+    pbar = tqdm(test_columns, desc="load test columns")
+    for col in pbar:
+        pbar.set_postfix_str("load {}".format(col))
         df = pd.read_feather(feather_path(col, "test"))
         test_df[col] = df[col].values
+        
 
     target_df = pd.read_feather(feather_path(target_column, "target"))
 
@@ -92,3 +118,5 @@ def run(
             ]
         )
         info("submit success")
+
+    wandb.finish()
