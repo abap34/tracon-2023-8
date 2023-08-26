@@ -8,16 +8,16 @@ from utils import model_path, info
 
 
 def train(model: AbstractModel, train_x, train_y, train_params, group=None):
-    if group is not None:
-        kf = StratifiedGroupKFold(n_splits=4, shuffle=True, random_state=34)
-        iter_kf = kf.split(train_x, train_y, group)
-    else:
-        kf = StratifiedKFold(n_splits=4, shuffle=True, random_state=34)
-        iter_kf = kf.split(train_x, train_y)
-
     val_pred = np.zeros(train_x.shape[0])
 
-    for fold, (train_idx, val_idx) in enumerate(iter_kf):
+    if group is not None:
+        folds = StratifiedGroupKFold(n_splits=4, shuffle=True, random_state=34)
+        splits = folds.split(train_x, train_y, group)
+    else:
+        folds = StratifiedKFold(n_splits=4, shuffle=True, random_state=34)
+        splits = folds.split(train_x, train_y)
+
+    for fold, (train_idx, val_idx) in enumerate(splits):
         info("start fold: {}".format(fold))
         model.init_model()
         x_train, y_train = train_x.iloc[train_idx], train_y.iloc[train_idx]
@@ -30,6 +30,7 @@ def train(model: AbstractModel, train_x, train_y, train_params, group=None):
         else:
             val_pred[val_idx] = pred
 
+    
     val_loss = mean_squared_error(train_y, val_pred)
 
     model.save_model(model_path(model.name, val_loss, model.wandb_id))
