@@ -1,15 +1,23 @@
-from sklearn.model_selection import KFold
+from sklearn.model_selection import StratifiedGroupKFold, StratifiedKFold
 from sklearn.metrics import mean_squared_error
 import numpy as np
+
 
 from model import AbstractModel
 from utils import model_path, info
 
 
-def train(model: AbstractModel, train_x, train_y, train_params):
-    kf = KFold(n_splits=4, shuffle=True, random_state=34)
+def train(model: AbstractModel, train_x, train_y, train_params, group=None):
+    if group is not None:
+        kf = StratifiedGroupKFold(n_splits=4, shuffle=True, random_state=34)
+        iter_kf = kf.split(train_x, train_y, group)
+    else:
+        kf = StratifiedKFold(n_splits=4, shuffle=True, random_state=34)
+        iter_kf = kf.split(train_x, train_y)
+
     val_pred = np.zeros(train_x.shape[0])
-    for fold, (train_idx, val_idx) in enumerate(kf.split(train_x, train_y)):
+
+    for fold, (train_idx, val_idx) in enumerate(iter_kf):
         info("start fold: {}".format(fold))
         model.init_model()
         x_train, y_train = train_x.iloc[train_idx], train_y.iloc[train_idx]
