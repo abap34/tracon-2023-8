@@ -8,7 +8,6 @@ class AbstractModel:
         self.name = name
         self.params = params
         self.wandb_id = rand_string(8)
-        wandb.config.wadb_id = self.wandb_id
 
     def init_model(self):
         raise NotImplementedError

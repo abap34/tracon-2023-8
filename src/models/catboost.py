@@ -12,10 +12,10 @@ class CBWandbLogger:
 
     def after_iteration(self, info):
         wandb.log(
-            {"train/{}".format(self.fold_name): info.metrics["learn"][self.loss_name][-1]}
+            {"train/{}".format(self.fold_name): info.metrics["learn"][self.loss_name][-1] ** 2}
         )
         wandb.log(
-            {"val/{}".format(self.fold_name): info.metrics["validation"][self.loss_name][-1]}
+            {"val/{}".format(self.fold_name): info.metrics["validation"][self.loss_name][-1] ** 2}
         )
         return True
 
