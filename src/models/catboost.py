@@ -1,8 +1,15 @@
 import wandb
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set()
+
+
+
 from catboost import CatBoostRegressor, CatBoostClassifier
 
 from model import AbstractModel 
 from utils import save_dict, load_dict
+
 
 
 class CBWandbLogger:
@@ -37,6 +44,15 @@ class CatBoostRegressionModel(AbstractModel):
             train_x, train_y, eval_set=[(val_x, val_y)], callbacks=[logger], **params
         )
         val_pred = self.model.predict(val_x)
+
+        feature_importance = self.model.feature_importances_
+        feature_names = self.model.feature_names_
+
+        fig, ax = plt.subplots(figsize=(10, 10))
+        sns.barplot(x=feature_importance, y=feature_names, ax=ax)
+        wandb.log({"feature_importance/{}".format(fold_name): wandb.Image(fig)})
+        plt.close()
+        
         return val_pred
 
     def predict(self, test_x):
