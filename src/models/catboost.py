@@ -19,10 +19,12 @@ class CBWandbLogger:
 
     def after_iteration(self, info):
         wandb.log(
-            {"train/{}".format(self.fold_name): info.metrics["learn"][self.loss_name][-1] ** 2}
+            {"train/{}".format(self.fold_name): info.metrics["learn"][self.loss_name][-1] ** 2},
+            step=info.iteration,
         )
         wandb.log(
-            {"val/{}".format(self.fold_name): info.metrics["validation"][self.loss_name][-1] ** 2}
+            {"val/{}".format(self.fold_name): info.metrics["validation"][self.loss_name][-1] ** 2},
+            step=info.iteration,
         )
         return True
 
@@ -35,8 +37,7 @@ class CatBoostRegressionModel(AbstractModel):
     def init_model(self):
         self.model = CatBoostRegressor(**self.params)
 
-    def train_fold(self, fold, train_x, train_y, val_x, val_y, params=None):
-        fold_name = "fold_{}".format(fold)
+    def train_fold(self, fold_name, train_x, train_y, val_x, val_y, params=None):
         logger = CBWandbLogger(fold_name, "RMSE")
         if params is None:
             params = {}
@@ -52,7 +53,7 @@ class CatBoostRegressionModel(AbstractModel):
         sns.barplot(x=feature_importance, y=feature_names, ax=ax)
         wandb.log({"feature_importance/{}".format(fold_name): wandb.Image(fig)})
         plt.close()
-        
+
         return val_pred
 
     def predict(self, test_x):
