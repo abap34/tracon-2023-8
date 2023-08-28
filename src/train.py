@@ -7,7 +7,7 @@ from model import AbstractModel
 from utils import model_path, info
 
 
-def train(model: AbstractModel, train_x, train_y, train_params, group=None):
+def train(model: AbstractModel, train_x, train_y, train_params, initializer, group=None, fold_rule=None):
     val_pred = np.zeros(train_x.shape[0])
 
     if group is not None:
@@ -17,9 +17,16 @@ def train(model: AbstractModel, train_x, train_y, train_params, group=None):
         folds = StratifiedKFold(n_splits=4, shuffle=True, random_state=34)
         splits = folds.split(train_x, train_y)
 
+    if fold_rule is None:
+        fold_rule = lambda x: x
+
+
     for fold, (train_idx, val_idx) in enumerate(splits):
-        info("start fold: {}".format(fold))
         model.init_model()
+        initializer()
+
+        info("start fold: {}".format(fold))
+
         x_train, y_train = train_x.iloc[train_idx], train_y.iloc[train_idx]
         x_val, y_val = train_x.iloc[val_idx], train_y.iloc[val_idx]
         pred = model.train_fold(
@@ -31,7 +38,9 @@ def train(model: AbstractModel, train_x, train_y, train_params, group=None):
             val_pred[val_idx] = pred
 
     
+    
     val_loss = mean_squared_error(train_y, val_pred)
+    info("Finish Train. val_loss: {}".format(val_loss))
 
     model.save_model(model_path(model.name, val_loss, model.wandb_id))
 

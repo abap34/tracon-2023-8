@@ -3,6 +3,9 @@ from tqdm import tqdm
 import subprocess
 import pandas as pd
 import glob
+import pprint
+import os
+
 
 from train import train
 from modelregister import ModelRegister
@@ -12,7 +15,7 @@ from utils import feather_path, submission_path, info
 def run(
     in_columns: list[str],
     target_column: str,
-    test_columns: list[str],
+    test_prefix: str,
     test_id: str,
     run_config: dict,
     model_params: dict,
@@ -21,22 +24,21 @@ def run(
     in_columns_fixed = []
     for col in in_columns:
         if "*" in col:
-            for filename in glob.glob(feather_path(col, "train")):
+            for filename in sorted(glob.glob(feather_path(col, "train"))):
                 in_columns_fixed.append(filename.split("/")[-1].split(".")[0])
         else:
             in_columns_fixed.append(col)
 
     in_columns = in_columns_fixed
 
-    test_columns_fixed = []
-    for col in test_columns:
-        if "*" in col:
-            for filename in glob.glob(feather_path(col, "test")):
-                test_columns_fixed.append(filename.split("/")[-1].split(".")[0])
-        else:
-            test_columns_fixed.append(col)
-        
-    test_columns = test_columns_fixed
+    test_columns = []
+    for col in in_columns:
+        test_columns.append(test_prefix + "_" + col)
+
+    info("train columns -> test columns") 
+    for i in range(len(in_columns)):
+        info("{} -> {}".format(in_columns[i], test_columns[i]))
+
 
     params = {
         "in_columns": in_columns,
@@ -45,12 +47,12 @@ def run(
         "train_params": train_params,
     }
 
-    wandb.init(
+    initializer = lambda : wandb.init(
         project="tracon-2023-8",
-        name=run_config["name"] + "-" + run_config["prefix"],
         group=run_config["name"],
         config=params,
     )
+    
 
     train_df = pd.DataFrame()
     pbar = tqdm(in_columns, desc="load train columns")
@@ -79,7 +81,12 @@ def run(
     else:
         group = None
 
-    val_loss = train(model, train_df, target_df, train_params, group=group)
+    if "fold_rule" in run_config:
+        fold_rule = run_config["fold_rule"]
+    else:
+        fold_rule = None
+
+    val_loss = train(model, train_df, target_df, train_params, initializer, group=group, fold_rule=fold_rule)
 
     wandb.alert(
         title="Finish Training: {}".format(run_config["name"]),
@@ -100,6 +107,11 @@ def run(
     else:
         submit_file_path = submission_path(run_config["name"])
 
+    # make path to absolute
+    if not submit_file_path.startswith("/"):
+        submit_file_path = os.path.abspath(submit_file_path)
+    
+    info("save submit file: {}".format(submit_file_path))
     pred_df.to_csv(submit_file_path, index=False)
 
     if run_config["submit"]:
