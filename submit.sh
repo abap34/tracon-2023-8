@@ -1,0 +1,1 @@
+kaggle competitions submit -c trap-competetion-2023-summer -f ./output/submission.csv -m "test"
